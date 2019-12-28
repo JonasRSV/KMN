@@ -1,0 +1,5 @@
+clang++
+-Wall 
+lib/knn.cpp
+-o 
+bin/knn
