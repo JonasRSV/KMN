@@ -1,5 +1,8 @@
 clang++
 -Wall 
+lib/test.cpp
+lib/point.cpp
+lib/cluster.h
 lib/knn.cpp
 -o 
-bin/knn
+bin/test
