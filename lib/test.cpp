@@ -57,33 +57,6 @@ clusters* get_sample_cluster(int n, int dim, int n_clusters) {
   return cl;
 }
 
-void test_distance() {
-  double *co1 = new double[5];
-  co1[0] = 1.0;
-  co1[1] = 2.0;
-  co1[2] = 3.0;
-  co1[3] = 1.0;
-  co1[4] = 1.0;
-
-  point p1 = point{co1, 5};
-
-  double *co2 = new double[5];
-  co2[0] = 1.0;
-  co2[1] = 2.0;
-  co2[2] = 3.0;
-  co2[3] = 1.0;
-  co2[4] = 3.0;
-
-  point p2 = point{co2, 5};
-
-  double d = l2_distance(p1, p2);
-
-  std::cout << "D " << d << std::endl;
-  if (d != 2.0)
-    std::cout << "distance gave " << d << " should be 2.0" << std::endl;
-
-}
-
 void test_knn_small_cluster() {
   clusters *cl = get_sample_cluster(20, 4, 5);
   print_clusters(cl);
