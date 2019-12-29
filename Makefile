@@ -1,22 +1,27 @@
 
 CXX = clang++
-FLAGS = -Wall
+FLAGS = -Wall -g
 
-test: build/point.o build/test.o build/cluster.o build/knn.o
-	echo $?
+test: build/test.o build/knn.o build/distance.o build/mat.o build/vec.o build/preds.o 
 	$(CXX) $(FLAGS) -o bin/test $?
 	./bin/test
 
 build/test.o: lib/test.cpp
 	$(CXX) $(FLAGS) -c lib/test.cpp -o build/test.o
 
-build/cluster.o: lib/cluster.cpp
-	$(CXX) $(FLAGS) -c lib/cluster.cpp -o build/cluster.o
-
 build/knn.o: lib/knn.cpp
 	$(CXX) $(FLAGS) -c lib/knn.cpp -o build/knn.o
 
-build/point.o: lib/point.cpp
-	$(CXX) $(FLAGS) -c lib/point.cpp -o build/point.o
+build/distance.o: lib/distance.cpp
+	$(CXX) $(FLAGS) -c lib/distance.cpp -o build/distance.o
+
+build/mat.o: lib/mat.cpp
+	$(CXX) $(FLAGS) -c lib/mat.cpp -o build/mat.o
+
+build/vec.o: lib/vec.cpp
+	$(CXX) $(FLAGS) -c lib/vec.cpp -o build/vec.o
+
+build/preds.o: lib/preds.cpp
+	$(CXX) $(FLAGS) -c lib/preds.cpp -o build/preds.o
 
 

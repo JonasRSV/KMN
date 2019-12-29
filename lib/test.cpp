@@ -1,110 +1,128 @@
 #include <time.h>
 #include <iostream>
-#include "point.h"
-#include "cluster.h"
 #include "knn.h"
 
-double f_rand(double f_min, double f_max) {
-  double f = (double)rand() / RAND_MAX;
-  return f_min + f * (f_max - f_min);
-}
-
-point* get_sample_points(int n, int dim, double f_min, double f_max) {
-  point *p = new point[n];
-
-  for (int i = 0; i < n; i++) {
-    double *co = new double[dim];
-
-    // Fill the point
-    for (int j = 0; j < dim; j++) {
-      co[j] = f_rand(f_min, f_max);
-    }
-
-    p[i] = point{
-      co,
-        dim
-    };
-
+vec* mock_vec(int m, int n, double f_min, double f_max) {
+  vec *points = new vec[m];
+  for (int i = 0; i < m; i++) {
+    points[i] = vec(n);
+    points[i].rand(f_min, f_max);
   }
-
-  return p;
+  return points;
 }
 
-clusters* get_sample_cluster(int n, int dim, int n_clusters) {
-  // Will try to make equal distribution in all clusters
+mat* mock_clusters(int m, int n, int c) {
 
-  point **point_mat = new point*[n_clusters];
-
-  int point_in_cluster = n / n_clusters, p = 0;
-
+  int n_cluster_points = m / c;
+  mat *data = new mat();
   double center = 2, var = 1, shift = 2;
-  for (int i = 0; i < n_clusters; i++) {
-    point_mat[i] = get_sample_points(point_in_cluster, dim, center - var, center + var);
-    p += point_in_cluster;
+  for (int i = 0; i < c; i++) {
+    vec *points = mock_vec(n_cluster_points, n, center - var, center + var);
+    mat tmp = mat(n_cluster_points, points);
+
+    data->extend(&tmp);
     center += shift;
   }
 
-  // Flatten clusters
-  point *points = new point[p];
-  for (int i = 0; i < n_clusters; i++) {
-    for (int j = 0; j < point_in_cluster; j++) {
-      points[i * point_in_cluster + j] = point_mat[i][j];
-    }
-  }
-
-  clusters *cl = init_clusters(points, p, n_clusters);
-
-  return cl;
+  return data;
 }
 
-void test_knn_small_cluster() {
-  clusters *cl = get_sample_cluster(20, 4, 5);
-  print_clusters(cl);
-  cl = em(cl, 10);
-  print_clusters(cl);
-}
 
-void test_knn_large_cluster() {
-  std::cout << "Getting Large cluster 1000000 points in R10 with 10 clusters" << std::endl;
+void test_performance_of_clustering() {
+
+  std::cout << "Getting Large cluster 1 000 00 points in R10 with 10 clusters" << std::endl;
   time_t timestamp = time(NULL);
-  clusters *cl = get_sample_cluster(1000000, 10, 10);
+  mat *train_points = mock_clusters(100000, 10, 10);
   time_t finish = time(NULL);
-
   std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
 
+  std::cout << "Getting Large cluster 1000 points in R10 with 10 clusters to predict" << std::endl;
+  timestamp = time(NULL);
+  mat *pred_points = mock_clusters(1000, 10, 10);
+  finish = time(NULL);
+  std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
+
+  knn k = knn(10);
   std::cout << "Clustering" << std::endl;
   timestamp = time(NULL);
-  em(cl, 10);
+  k.fit(train_points, 10);
+  finish = time(NULL);
+  std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
+
+  std::cout << "Predicting with k = 4 on 1000 points" << std::endl;
+  timestamp = time(NULL);
+  k.predict_knn(pred_points, 4);
+  finish = time(NULL);
+  std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
+
+  std::cout << "Getting Large cluster 1 000 000 points in R10 with 10 clusters to predict" << std::endl;
+  timestamp = time(NULL);
+  pred_points = mock_clusters(1000000, 10, 10);
+  finish = time(NULL);
+  std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
+
+  std::cout << "Predicting Centroids on 1 000 000 points" << std::endl;
+  timestamp = time(NULL);
+  k.predict_cent(pred_points);
   finish = time(NULL);
   std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
 }
 
-void test_knn_prediction() {
-  clusters *cl = get_sample_cluster(20, 3, 3);
-  print_clusters(cl);
-  cl = em(cl, 10);
-  print_clusters(cl);
 
+void test_printing_distances() {
+  vec *points = mock_vec(5, 3, 0, 10);
+  for (int i = 0; i < 5; i++) 
+    std::cout << points[i];
 
-
-  std::cout << "Predicting on same as is training" << std::endl;
-  clusters *res = predict(cl, cl->po, 18, 3);
-  print_clusters(res);
-
-  std::cout << "Predicting on new" << std::endl;
-  point *po = get_sample_points(10, 3, 0, 10);
-  res = predict(cl, po, 10, 3);
-  print_clusters(res);
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      std::cout << i << " " << j << " " << l2(points[i], points[j]) << std::endl;
+    }
+  }
 }
 
+void test_clustering() {
+  mat *train_points = mock_clusters(10, 3, 3);
+
+  vec *matrix = mock_vec(10, 3, 0, 10);
+  mat pred = mat(10, matrix);
+
+  std::cout << "Training " << std::endl << *train_points;
+  std::cout << std::endl;
+  std::cout << "Pred " << std::endl << pred;
+
+  knn k = knn(3);
+  k.fit(train_points, 20);
+
+  std::cout << "Centroids " << std::endl << *k.cent << std::endl;
+
+  std::cout << "Trained KNN prediction " << std::endl << *k.predict_knn(train_points, 3) << std::endl;
+  std::cout << "Trained Centroid prediction " << std::endl << *k.predict_cent(train_points) << std::endl;
+
+  std::cout << "Pred KNN prediction " << std::endl << *k.predict_knn(&pred, 3) << std::endl;
+  std::cout << "Pred Centroid prediction " << std::endl << *k.predict_cent(&pred) << std::endl;
+
+}
+
+void test_multiple_clusters() {
+  mat *d1 = mock_clusters(10, 3, 3);
+  mat *d2 = mock_clusters(10, 3, 3);
+  mat *d3 = mock_clusters(10, 3, 3);
+
+  std::cout << *d1 << *d2 << *d3 << std::endl;
+
+}
 
 int main() {
-  test_distance();
+  srand(5);
 
-  srand(101);
+  //test_multiple_clusters();
+  //test_printing_distances();
+  //mat *data = mock_clusters(10, 3, 3);
 
-  test_knn_prediction();
-
+  //std::cout << *data << std::endl;
+  //test_clustering();
+  test_performance_of_clustering();
 
   return 0;
 }

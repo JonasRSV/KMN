@@ -1,116 +1,123 @@
 #include <iostream>
 #include <float.h>
 #include "knn.h"
-#include "point.h"
 #include <algorithm>
 
 
-centroids* calc_centroids(centroids *cent, clusters *cl) {
-  // For each cluster calculate its centroid
-  // Basically the point in the "middle" of the cluster
-  // Here we use l2 distance
-  double counts[cl->n_clusters];
+knn::knn(int c) {
+  this->c = c;
+  this->d = l2;
 
-  for (int i = 0; i < cl->n_clusters; i++)
-    counts[i] = 0;
+  this->labels = nullptr;
+  this->cent = nullptr;
+
+}
 
 
-  int dim = cent->po->dim;
+preds* knn::fit(mat *points, int max_iter) {
+  // First clean up from any earlier run
+  if (this->labels != nullptr)
+    delete[] this->labels;
 
-  //Start by setting all centroids to 0
-  for (int i = 0; i < cl->n_clusters; i++) {
-    for (int j = 0; j < dim; j++) {
-      cent->po[i].co[j] = 0;
+  if (this->cent != nullptr)
+    delete[] this->cent;
+
+  if (points->m == 0) 
+    throw "Cannot fit on no data";
+
+  // Prepair for the EM algorithm
+  this->n = points->matrix[0].n;
+  this->points = points;
+
+  // Initialise labels randomly
+  this->labels = new int[points->m];
+  for (int i = 0; i < points->m; i++) {
+    labels[i] = std::rand() % this->c;
+  }
+
+  this->cent = new mat(this->c, this->n);
+
+  // Run EM algorithm to estimate clusters
+  for (int i = 0; i < max_iter; i++) {
+    update_centroids();
+    update_clusters();
+  }
+
+  return new preds(this->labels, this->points);
+}
+
+
+void knn::update_centroids() {
+  // Find the center of each cluster
+  double counts[this->c];
+  for (int i = 0; i < this->c; i++)
+    counts[i] = 0.0;
+
+  // Reset centroids
+  for (int i = 0; i < this->c; i++) {
+    for (int j = 0; j < this->n; j++) {
+      this->cent->matrix[i].vector[j] = 0;
     }
   }
 
   // Calculate sum of dimensions per label
-  for (int i = 0; i < cl->n_points; i++) {
-    counts[cl->labels[i]] += 1.0;
-    for (int j = 0; j < dim; j++) {
-      cent->po[cl->labels[i]].co[j] += cl->po[i].co[j];
+  for (int i = 0; i < this->points->m; i++) {
+    counts[this->labels[i]] += 1.0;
+    for (int j = 0; j < this->n; j++) {
+      this->cent->matrix[this->labels[i]].vector[j] += this->points->matrix[i].vector[j];
     }
   }
 
   //Divide by counts
-  for (int i = 0; i < cl->n_clusters; i++) {
-    for (int j = 0; j < dim; j++) {
-      cent->po[i].co[j] = cent->po[i].co[j] / (counts[i] + 1e-15);
+  for (int i = 0; i < this->c; i++) {
+    for (int j = 0; j < this->n; j++) {
+      this->cent->matrix[i].vector[j] = this->cent->matrix[i].vector[j] / (counts[i] + 1e-15);
     }
   }
-
-
-  return cent;
 }
 
-
-clusters* re_cluster(centroids *cent, clusters *cl) {
-  // For each point calculate the distance to each centroid
-  // let the point belong to the closest centroid
-
-  for (int i = 0; i < cl->n_points; i++) {
-    int closest = 0;
-    double closest_distance = DBL_MAX, dist;
-    for (int j = 0; j < cl->n_clusters; j++) {
-
-      dist = l2_distance(cent->po[j], cl->po[i]);
-      if (dist < closest_distance) {
-        closest_distance = dist;
-        closest = j;
+void knn::update_clusters() {
+  // For each center let each point belong to the center closest to it
+  for (int i = 0; i < this->points->m; i++) {
+    int label = 0;
+    double dist_min = DBL_MAX, dist;
+    for (int j = 0; j < this->c; j++) {
+      dist = this->d(this->cent->matrix[j], this->points->matrix[i]);
+      if (dist < dist_min) {
+        dist_min = dist;
+        label = j;
       }
     }
-
-    cl->labels[i] = closest;
+    this->labels[i] = label;
   }
-
-  return cl;
-}
-
-clusters* em(clusters *cl, int max_iter) {
-
-  centroids *cent = new centroids();
-  cent->po = new point[cl->n_clusters];
-
-  // Initialise centroids
-  for (int i = 0; i < cl->n_clusters; i++) {
-    cent->po[i].co = new double[cl->dim];
-    cent->po[i].dim = cl->dim;
-  }
-
-
-  // Run EM algorithm to estimate clusters
-  for (int i = 0; i < max_iter; i++) {
-    cent = calc_centroids(cent, cl);
-    cl = re_cluster(cent, cl);
-  }
-
-  return cl;
 }
 
 
-clusters* predict(clusters *cl, point *po, int n_points, int k) {
+preds* knn::predict_knn(mat *points, int k) {
+  // TODO: Paralellise the outer for loop of the predictions
+
   // Do a knn prediction where k is the number of neighbours to look at
   // We will use a heap to find the k closest points making the full complexity of this
   // O(n_points_to_predict * n_points_in_clusters * log (k))
 
   int heap[k];
-  int neighbour_counts[cl->n_clusters];
+  int counts[this->c];
 
-  int *labels = new int[n_points];
-  for (int i = 0; i < n_points; i++) {
+  int *labels = new int[points->m];
+  for (int i = 0; i < points->m; i++) {
+
     // Reset heap
-    for (int j = 0; j < k; j++) {
+    for (int j = 0; j < k; j++) 
       heap[j] = 0.0;
-    }
 
     // Define comparator for this point
-    auto comparator = [cl, i, po](int ii, int jj) {
-      return l2_distance(cl->po[ii], po[i]) <= l2_distance(cl->po[jj], po[i]);
+    auto comparator = [i, this, points](int i1, int i2) {
+      return this->d(this->points->matrix[i1], points->matrix[i]) <= this->d(this->points->matrix[i2], points->matrix[i]);
     };
 
-    for (int j = 0; j < cl->n_points; j++) {
+    for (int j = 0; j < this->points->m; j++) {
       // If element is smaller than largest element we shall update the heap
-      if (l2_distance(cl->po[heap[0]], po[i]) > l2_distance(cl->po[j], po[i])) {
+      if (comparator(j, heap[0])) { 
         // This moves largest element to k - 1
         std::pop_heap(heap, heap + k, comparator);
         // Insert into heap
@@ -120,44 +127,43 @@ clusters* predict(clusters *cl, point *po, int n_points, int k) {
       }
     }
 
-    // Now we have the k neighbours for point i and need to find
-    // the most common neighbour label
-    // We shall count the neighbour labels and then pick the largest one
-    // First we reset previous count
-    for (int j = 0; j < cl->n_clusters; j++) {
-      neighbour_counts[j] = 0;
-    }
+    // Now find the type of neighbour that is most prevalent
+    for (int j = 0; j < this->c; j++)
+      counts[j] = 0;
 
-    // do the counting
-    for (int j = 0; j < k; j++) {
-      neighbour_counts[cl->labels[heap[j]]] += 1;
-    }
+    for (int j = 0; j < k; j++) 
+      counts[this->labels[heap[j]]] += 1;
 
     // find most common label
-    int most_common = 0;
-    int most_common_counts = 0;
-    for (int j = 0; j < cl->n_clusters; j++) {
-      if (neighbour_counts[j] > most_common_counts) {
-        most_common = j;
-        most_common_counts = neighbour_counts[j];
+    int label = 0;
+    int most = 0;
+    for (int j = 0; j < this->c; j++) {
+      if (counts[j] > most) {
+        label = j;
+        most = counts[j];
       }
     }
 
-    // We now assign the label most_common to item i
-    labels[i] = most_common;
+    labels[i] = label;
   }
 
-
-  clusters *preds = new clusters();
-  preds->dim = cl->dim;
-  preds->n_clusters = -1;
-  preds->n_points = n_points;
-  preds->po = po;
-  preds->labels = labels;
-
-  return preds;
-
+  return new preds(labels, points);
 }
 
+preds* knn::predict_cent(mat *points) {
+  int *labels = new int[points->m];
+    for (int i = 0; i < points->m; i++) {
 
-
+      int label = 0;
+      double bdist = DBL_MAX, dist;
+      for (int j = 0; j < this->c; j++) {
+        dist = this->d(points->matrix[i], this->cent->matrix[j]);
+        if (dist < bdist) {
+          bdist = dist;
+          label = j;
+        }
+      }
+      labels[i] = label;
+    }
+  return new preds(labels, points);
+}
