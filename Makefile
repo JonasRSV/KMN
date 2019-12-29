@@ -1,10 +1,17 @@
 
 CXX = clang++
 FLAGS = -Wall -g
+PYFLAG = -shared -fPIC -Wall -undefined dynamic_lookup
+
+fast_knn_py: lib/python.cpp lib/knn.cpp lib/distance.cpp lib/mat.cpp lib/vec.cpp lib/preds.cpp
+	$(CXX) $(PYFLAG) -o py/fast_knn.so $?
 
 test: build/test.o build/knn.o build/distance.o build/mat.o build/vec.o build/preds.o 
 	$(CXX) $(FLAGS) -o bin/test $?
 	./bin/test
+
+build/python.o: lib/python.cpp 
+	$(CXX) $(FLAGS) -c lib/python.cpp -o build/python.o
 
 build/test.o: lib/test.cpp
 	$(CXX) $(FLAGS) -c lib/test.cpp -o build/test.o

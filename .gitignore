@@ -1,3 +1,8 @@
 
 bin/test
 build/*.o
+.idea/
+.venv/
+build/lib/
+fast_knn.egg-info/
+dist/

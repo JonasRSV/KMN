@@ -1,6 +1,7 @@
 #include <iostream>
 #include <functional>
 #include <cstring>
+#include <string>
 
 #pragma once
 
@@ -62,8 +63,6 @@ std::ostream &operator<<(std::ostream &os, preds const &p);
 typedef double (*distance)(const vec&, const vec&); //std::function<double(const vec&, const vec&)> distance;
 
 class knn {
-  // Number of clusters to find
-  int c;
   // Distance between two points
   distance d;
 
@@ -78,9 +77,11 @@ class knn {
 
   public:
   mat *cent;
+  // Number of clusters to find
+  int c;
 
   knn(int c);
-  knn(int c, distance d): c(c), d(d), labels(nullptr), cent(nullptr){}
+  knn(int c, distance d): d(d), labels(nullptr), cent(nullptr), c(c) {}
 
   preds* fit(mat *points, int max_iter);
   preds* predict_knn(mat *points, int k);
