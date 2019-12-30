@@ -1,8 +1,8 @@
 
-### Fast-KNN
+### KMN
 ---
 
-A fast K-nearest-neighbour implementation
+A fast (ish) K-Nearest Neighbors and KMeans implementation
 
 #### Installing
 ```bash
