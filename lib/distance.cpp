@@ -1,4 +1,4 @@
-#include "knn.h"
+#include "kmn.h"
 #include <math.h>
 
 double l2(const vec &p1, const vec &p2) {

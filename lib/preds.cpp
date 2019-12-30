@@ -1,4 +1,4 @@
-#include "knn.h"
+#include "kmn.h"
 #include <iostream>
 
 

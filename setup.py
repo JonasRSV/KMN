@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="fast-knn",
+    name="KMN",
     version="0.0.1",
     author="Jonas",
     author_email="jonas@valfridsson.net",
@@ -9,7 +9,7 @@ setuptools.setup(
     url="",
     packages=setuptools.find_packages(),
     install_requires=["numpy"],
-    package_data={'': ['fast_knn.so']},
+    package_data={'': ['fast_kmn.so']},
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -1,11 +1,13 @@
-#include "knn.h"
+#include "kmn.h"
 #include <string>
 #include <iostream>
 
 extern "C" {
-  knn* init_knn(int c) {
-    return new knn(c);
-  }
+  kmn* init_kmn(int c) { return new kmn(c); }
+  int* kmeans(kmn *clf, mat *points, int max_iter) { return clf->kmeans(points, max_iter)->labels; }
+  void kneigh(kmn *clf, mat *points, int *labels) { clf->kneigh(points, labels); }
+  int* predict_knn(kmn *clf, mat *points, int k) { return clf->predict_knn(points, k)->labels; }
+  int* predict_cent(kmn *clf, mat *points) { return clf->predict_cent(points)->labels; }
 
   mat* init_mat(int m, int n, double **values) {
     vec *matrix = new vec[m];
@@ -15,15 +17,4 @@ extern "C" {
     return new mat(m, matrix);
   }
 
-  void fit_knn(knn *clf, mat *points, int max_iter) {
-    clf->fit(points, max_iter);
-  }
-
-  int* predict_knn(knn *clf, mat *points, int k) {
-    return clf->predict_knn(points, k)->labels;
-  }
-
-  int* predict_cent(knn *clf, mat *points) {
-    return clf->predict_cent(points)->labels;
-  }
 }

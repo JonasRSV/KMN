@@ -1,8 +1,10 @@
 clang++
 -Wall 
 lib/test.cpp
-lib/point.cpp
-lib/cluster.h
-lib/knn.cpp
+lib/kmn.cpp
+lib/mat.cpp
+lib/preds.cpp 
+lib/python.cpp
+lib/vec.cpp
 -o 
 bin/test

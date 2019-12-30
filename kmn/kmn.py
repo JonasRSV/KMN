@@ -3,6 +3,7 @@ import time
 import numpy as np
 import typing
 import os
+import sys
 
 Matrix = typing.List[typing.List[float]]
 
@@ -13,13 +14,13 @@ def _int_pointer_to_np(pointer: int, size: int):
     return res
 
 
-class KNN:
+class KMN:
 
     def __init__(self, C=3, verbose=True):
-        self.lib = ctypes.cdll.LoadLibrary(f"{os.path.dirname(os.path.abspath(__file__))}/fast_knn.so")
+        self.lib = ctypes.cdll.LoadLibrary(f"{os.path.dirname(os.path.abspath(__file__))}/fast_kmn.so")
 
         self.verbose = verbose
-        self.knn = self.lib.init_knn(C)
+        self.kmn = self.lib.init_kmn(C)
 
         self.lib.init_mat.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.POINTER(
             ctypes.POINTER(
@@ -60,23 +61,38 @@ class KNN:
 
         return mat
 
-    def fit(self, matrix: Matrix, max_iter: int = 10):
-        """Fit the KNN model"""
+    def fit_kmeans(self, matrix: Matrix, max_iter: int = 10) -> np.ndarray:
+        """Fit the KMN model"""
         mat = self._get_mat(matrix)
 
         timestamp = time.time()
-        self.lib.fit_knn(self.knn, mat, max_iter)
+        labels = self.lib.kmeans(self.kmn, mat, max_iter)
 
         if self.verbose:
             print("Time to fit", time.time() - timestamp)
 
-    def predict_knn(self, matrix: Matrix, k: int) -> np.ndarray:
-        """Make knn prediction and return labels with cluster belongance"""
+        return _int_pointer_to_np(labels, len(matrix))
+
+    def fit_knn(self, matrix: Matrix, labels: np.ndarray):
         mat = self._get_mat(matrix)
-        pred = self.lib.predict_knn(self.knn, mat, k)
+
+        int_pointer = ctypes.cast((ctypes.c_int * len(labels))(*labels), ctypes.POINTER(ctypes.c_int))
+
+        timestamp = time.time()
+        self.lib.kneigh(self.kmn, mat, int_pointer)
+
+        if self.verbose:
+            print("Time to fit", time.time() - timestamp)
+
+        return self
+
+    def predict_knn(self, matrix: Matrix, k: int) -> np.ndarray:
+        """Make kmn prediction and return labels with cluster belongance"""
+        mat = self._get_mat(matrix)
+        pred = self.lib.predict_knn(self.kmn, mat, k)
         return _int_pointer_to_np(pred, len(matrix))
 
     def predict_cent(self, matrix: Matrix) -> np.ndarray:
         mat = self._get_mat(matrix)
-        pred = self.lib.predict_cent(self.knn, mat)
+        pred = self.lib.predict_cent(self.kmn, mat)
         return _int_pointer_to_np(pred, len(matrix))

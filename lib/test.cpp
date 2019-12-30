@@ -1,6 +1,6 @@
 #include <time.h>
 #include <iostream>
-#include "knn.h"
+#include "kmn.h"
 
 vec* mock_vec(int m, int n, double f_min, double f_max) {
   vec *points = new vec[m];
@@ -42,10 +42,10 @@ void test_performance_of_clustering() {
   finish = time(NULL);
   std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
 
-  knn k = knn(10);
+  kmn k = kmn(10);
   std::cout << "Clustering" << std::endl;
   timestamp = time(NULL);
-  k.fit(train_points, 10);
+  k.kmeans(train_points, 10);
   finish = time(NULL);
   std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
 
@@ -91,17 +91,16 @@ void test_clustering() {
   std::cout << std::endl;
   std::cout << "Pred " << std::endl << pred;
 
-  knn k = knn(3);
-  k.fit(train_points, 20);
+  kmn k = kmn(3);
+  k.kmeans(train_points, 20);
 
   std::cout << "Centroids " << std::endl << *k.cent << std::endl;
 
   std::cout << "Trained KNN prediction " << std::endl << *k.predict_knn(train_points, 3) << std::endl;
   std::cout << "Trained Centroid prediction " << std::endl << *k.predict_cent(train_points) << std::endl;
 
-  std::cout << "Pred KNN prediction " << std::endl << *k.predict_knn(&pred, 3) << std::endl;
+  std::cout << "Pred KMN prediction " << std::endl << *k.predict_knn(&pred, 3) << std::endl;
   std::cout << "Pred Centroid prediction " << std::endl << *k.predict_cent(&pred) << std::endl;
-
 }
 
 void test_multiple_clusters() {
@@ -110,6 +109,65 @@ void test_multiple_clusters() {
   mat *d3 = mock_clusters(10, 3, 3);
 
   std::cout << *d1 << *d2 << *d3 << std::endl;
+}
+
+void test_kneigh() {
+  mat *train_points = mock_clusters(10, 3, 3);
+
+  int *labels = new int[10];
+  for (int i = 0; i < 10; i++) 
+    labels[i] = std::rand() % 3;
+
+  vec* matrix = mock_vec(10, 3, 0, 10);
+  mat pred = mat(10, matrix);
+
+  preds p = preds(labels, train_points);
+  std::cout << "Training " << std::endl << p;
+  std::cout << std::endl;
+  std::cout << "Pred " << std::endl << pred;
+
+  kmn k = kmn();
+  k.kneigh(train_points, labels);
+
+  std::cout << "Centroids " << std::endl << *k.cent << std::endl;
+
+  std::cout << "Trained KNN prediction " << std::endl << *k.predict_knn(train_points, 3) << std::endl;
+  std::cout << "Trained Centroid prediction " << std::endl << *k.predict_cent(train_points) << std::endl;
+
+  std::cout << "Pred KMN prediction " << std::endl << *k.predict_knn(&pred, 3) << std::endl;
+  std::cout << "Pred Centroid prediction " << std::endl << *k.predict_cent(&pred) << std::endl;
+
+  train_points = mock_clusters(10000, 100, 3);
+
+  // Funny behaviour, if we call this pred
+  // Then when we construct the "new mat"
+  // The constructor for mat will be called first
+  // and pred will be stored in the same memory address
+  // And then the old "pred" goes out of scope so the 
+  // Destructor is called, and for some reason it calls
+  // the destructor of the new pred. And hence frees the matrix data
+  // Causing segfault when trying to access it
+  matrix = mock_vec(100, 100, 0, 10);
+  mat pred2 = mat(100, matrix);
+
+  labels = new int[10000];
+  for (int i = 0; i < 10000; i++) 
+    labels[i] = std::rand() % 3;
+
+  time_t timestamp, finish;
+
+  kmn c = kmn();
+  timestamp = time(NULL);
+  c.kneigh(train_points, labels);
+  std::cout << "Training" << std::endl;
+  finish = time(NULL);
+  std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
+
+  std::cout << "Predicting" << std::endl;
+  timestamp = time(NULL);
+  c.predict_knn(&pred2, 5);
+  finish = time(NULL);
+  std::cout << "Took " << difftime(finish, timestamp) << " seconds" << std::endl;
 
 }
 
@@ -122,7 +180,8 @@ int main() {
 
   //std::cout << *data << std::endl;
   //test_clustering();
-  test_performance_of_clustering();
+  //test_performance_of_clustering();
+  test_kneigh();
 
   return 0;
 }

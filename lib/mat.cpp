@@ -1,4 +1,4 @@
-#include "knn.h"
+#include "kmn.h"
 #include <iostream>
 #include <cstring>
 
@@ -14,7 +14,10 @@ mat::mat(int m, int n) {
 }
 
 mat::~mat() {
-  delete[] this->matrix;
+  if (this->matrix != nullptr) {
+    delete[] this->matrix;
+    this->matrix = nullptr;
+  }
 }
 
 void mat::extend(mat *points) {

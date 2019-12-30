@@ -59,10 +59,10 @@ class preds {
 };
 
 std::ostream &operator<<(std::ostream &os, preds const &p);
-//=============== KNN Class =================
+//=============== KMN Class =================
 typedef double (*distance)(const vec&, const vec&); //std::function<double(const vec&, const vec&)> distance;
 
-class knn {
+class kmn {
   // Distance between two points
   distance d;
 
@@ -74,16 +74,27 @@ class knn {
   private:
   void update_centroids();
   void update_clusters();
+  void clean();
+  int calc_c(int m, int *labels);
+
+
 
   public:
   mat *cent;
   // Number of clusters to find
   int c;
 
-  knn(int c);
-  knn(int c, distance d): d(d), labels(nullptr), cent(nullptr), c(c) {}
+  // For KNN
+  kmn();
+  kmn(distance d): d(d), labels(nullptr), points(nullptr), cent(nullptr), c(0) {}
 
-  preds* fit(mat *points, int max_iter);
+  // For Kmeans
+  kmn(int c);
+  kmn(int c, distance d): d(d), labels(nullptr), points(nullptr), cent(nullptr), c(c) {}
+  ~kmn();
+
+  void kneigh(mat *points, int *labels);
+  preds* kmeans(mat *points, int max_iter);
   preds* predict_knn(mat *points, int k);
   preds* predict_cent(mat *points);
 };

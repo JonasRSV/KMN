@@ -6,3 +6,4 @@ build/*.o
 build/lib/
 fast_knn.egg-info/
 dist/
+KMN.egg-info/

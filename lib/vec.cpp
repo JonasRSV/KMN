@@ -1,4 +1,4 @@
-#include "knn.h"
+#include "kmn.h"
 #include <iostream>
 
 vec::vec(int n) {
@@ -17,7 +17,10 @@ void vec::rand(double f_min, double f_max) {
 
 
 vec::~vec() {
-  delete[] this->vector;
+  if (this->vector != nullptr) {
+    delete[] this->vector;
+    this->vector = nullptr;
+  }
 }
 
 std::ostream &operator<<(std::ostream &os, vec const &v) {
